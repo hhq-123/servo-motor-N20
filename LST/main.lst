@@ -1,0 +1,211 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              02/11/2020 23:30:49 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN ..\OBJ\main.obj
+COMPILER INVOKED BY: C:\software\IDE\Keil_v5\C51\BIN\C51.EXE main.c LARGE ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(.
+                    -.\HARDWARE\ADC;..\HARDWARE\EEPROM;..\HARDWARE\MOTOR;..\SYSTEM\sys;..\SYSTEM\TIMER;..\SYSTEM\USART;..\SYSTEM\GPIO;..\SYST
+                    -EM\DELAY;..\USER) DEBUG OBJECTEXTEND PRINT(..\LST\main.lst) TABS(2) OBJECT(..\OBJ\main.obj)
+
+line level    source
+
+   1          #include  "config.h"
+   2          #include  "USART1.h"
+   3          #include  "timer.h"
+   4          #include  "delay.h"
+   5          #include "eeprom.h"
+   6          
+   7          #include "motor.h"
+   8          
+   9          int count = 0;
+  10          char servoID = 0;
+  11          extern MOTOR Motor;
+  12          /*************  功能说明  **************
+  13          
+  14          双串口全双工中断方式收发通讯程序。
+  15          
+  16          通过PC向MCU发送数据, MCU收到后通过串口把收到的数据原样返回.
+  17          
+  18          ******************************************/
+  19          
+  20          /*************  本地常量声明  **************/
+  21          
+  22          
+  23          /*************  本地变量声明  **************/
+  24          
+  25          
+  26          /*************  本地函数声明  **************/
+  27          
+  28          
+  29          
+  30          /*************  外部函数和变量声明 *****************/
+  31          
+  32          
+  33          /*************  串口1初始化函数 *****************/
+  34          void  UART_config(void)
+  35          {
+  36   1        COMx_InitDefine   COMx_InitStructure;         //结构定义
+  37   1        COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;   //模式,       UART_ShiftRight,UART_8bit_BRTx,UART_9b
+             -it,UART_9bit_BRTx
+  38   1        COMx_InitStructure.UART_BRT_Use   = BRT_Timer2;     //使用波特率,   BRT_Timer1, BRT_Timer2 (注意: 串口2固定
+             -使用BRT_Timer2)
+  39   1        COMx_InitStructure.UART_BaudRate  = 115200ul;     //波特率, 一般 110 ~ 115200
+  40   1        COMx_InitStructure.UART_RxEnable  = ENABLE;       //接收允许,   ENABLE或DISABLE
+  41   1        COMx_InitStructure.BaudRateDouble = DISABLE;      //波特率加倍, ENABLE或DISABLE
+  42   1        COMx_InitStructure.UART_Interrupt = ENABLE;       //中断允许,   ENABLE或DISABLE
+  43   1        COMx_InitStructure.UART_Polity    = PolityHigh;     //中断优先级, PolityLow,PolityHigh
+  44   1        COMx_InitStructure.UART_P_SW      = UART1_SW_P30_P31; //切换端口,   UART1_SW_P30_P31,UART1_SW_P36_P37,UAR
+             -T1_SW_P16_P17(必须使用内部时钟)
+  45   1        COMx_InitStructure.UART_RXD_TXD_Short = DISABLE;    //内部短路RXD与TXD, 做中继, ENABLE,DISABLE
+  46   1        USART_Configuration(USART1, &COMx_InitStructure);   //初始化串口1 USART1,USART2
+  47   1      }
+  48          
+  49          void  Timer_config(void)
+  50          {
+C51 COMPILER V9.60.0.0   MAIN                                                              02/11/2020 23:30:49 PAGE 2   
+
+  51   1        TIM_InitTypeDef   TIM_InitStructure;          //结构定义
+  52   1        TIM_InitStructure.TIM_Mode      = TIM_16BitAutoReload;  //指定工作模式,   TIM_16BitAutoReload,TIM_16Bit,TI
+             -M_8BitAutoReload,TIM_16BitAutoReloadNoMask
+  53   1        TIM_InitStructure.TIM_Polity    = PolityLow;      //指定中断优先级, PolityHigh,PolityLow
+  54   1        TIM_InitStructure.TIM_Interrupt = ENABLE;       //中断是否允许,   ENABLE或DISABLE
+  55   1        TIM_InitStructure.TIM_ClkSource = TIM_CLOCK_1T;     //指定时钟源,     TIM_CLOCK_1T,TIM_CLOCK_12T,TIM_CLOCK_
+             -Ext
+  56   1        TIM_InitStructure.TIM_ClkOut    = ENABLE;       //是否输出高速脉冲, ENABLE或DISABLE
+  57   1        TIM_InitStructure.TIM_Value     = 65536UL - (MAIN_Fosc / 8000);   //初值,
+  58   1        TIM_InitStructure.TIM_Run       = ENABLE;       //是否初始化后启动定时器, ENABLE或DISABLE
+  59   1        Timer_Inilize(Timer0,&TIM_InitStructure);       //初始化Timer0    Timer0,Timer1,Timer2
+  60   1      }
+  61          
+  62          void  ADC_config(void)
+  63          {
+  64   1        ADC_InitTypeDef   ADC_InitStructure;        //结构定义
+  65   1        ADC_InitStructure.ADC_Px        = ADC_P10;  //设置要做ADC的IO,  ADC_P10 ~ ADC_P17(或操作),ADC_P1_All
+  66   1        ADC_InitStructure.ADC_Speed     = ADC_540T;     //ADC速度     ADC_90T,ADC_180T,ADC_360T,ADC_540T
+  67   1        ADC_InitStructure.ADC_Power     = ENABLE;     //ADC功率允许/关闭  ENABLE,DISABLE
+  68   1        ADC_InitStructure.ADC_AdjResult = ADC_RES_H8L2;   //ADC结果调整,  ADC_RES_H2L8,ADC_RES_H8L2
+  69   1        ADC_InitStructure.ADC_Polity    = PolityLow;    //优先级设置  PolityHigh,PolityLow
+  70   1        ADC_InitStructure.ADC_Interrupt = DISABLE;      //中断允许    ENABLE,DISABLE
+  71   1        ADC_Inilize(&ADC_InitStructure);          //初始化
+  72   1        ADC_PowerControl(ENABLE);             //单独的ADC电源操作函数, ENABLE或DISABLE
+  73   1      }
+  74          
+  75          /**********************************************/
+  76          void main(void)
+  77          {
+  78   1        AUXR &= ~2;
+  79   1      //  InternalRAM_enable(); 
+  80   1        
+  81   1        UART_config();
+  82   1        Timer_config();
+  83   1        ADC_config();
+  84   1        
+  85   1        Motor.state=0;
+  86   1        
+  87   1        EA = 1;
+  88   1        EEPROM_read_n(0x00, &servoID, 1);
+  89   1        PrintString1("ID:");  //SUART1发送一个字符串
+  90   1        TX1_write2buff(servoID%100/10 + '0');
+  91   1        TX1_write2buff(servoID%10 + '0');
+  92   1        PrintString1("\r\n");
+  93   1        
+  94   1        while (1)
+  95   1        {
+  96   2          delay_ms(1);
+  97   2          if(COM1.RX_TimeOut > 0)   //超时计数
+  98   2          {
+  99   3            if(--COM1.RX_TimeOut == 0)
+ 100   3            {
+ 101   4              if(COM1.RX_Cnt > 0)
+ 102   4              {
+ 103   5                
+ 104   5                if(((RX1_Buffer[0] & 0xC0))==0xC0)
+ 105   5                {
+ 106   6                  servoID = RX1_Buffer[0] & 0x3F;
+ 107   6                  EEPROM_SectorErase(0x00);
+ 108   6                  EEPROM_write_n(0x00, &servoID, 1);
+ 109   6                  
+ 110   6                  PrintString1("舵机ID更新为");
+C51 COMPILER V9.60.0.0   MAIN                                                              02/11/2020 23:30:49 PAGE 3   
+
+ 111   6                  TX1_write2buff(servoID%100/10 + '0');
+ 112   6                  TX1_write2buff(servoID%10 + '0');
+ 113   6                  PrintString1("\r\n");
+ 114   6      //            servoID=7;
+ 115   6      //            EEPROM_read_n(0x01, &servoID, 1);
+ 116   6      //            TX1_write2buff(servoID%100/10 + '0');
+ 117   6      //            TX1_write2buff(servoID%10 + '0');
+ 118   6      //            TX1_write2buff('\n');           
+ 119   6                  
+ 120   6                  
+ 121   6                  
+ 122   6                }
+ 123   5                else
+ 124   5                {
+ 125   6                  //TX1_write2buff(RX1_Buffer[0]&224);
+ 126   6                  //TX1_write2buff(servostate&224);
+ 127   6                  if((RX1_Buffer[0]&0x3C)>>2 == servoID)//11100000B
+ 128   6                  {
+ 129   7                    //TX1_write2buff(motorID);
+ 130   7                    Motor.state = (RX1_Buffer[0]&0xC0)>>6;
+ 131   7                    Motor.target = ((u16)RX1_Buffer[1]<<2);
+ 132   7                    Motor.speed = RX1_Buffer[1];
+ 133   7                    //EEPROM_write_n(u16 EE_address,u8 *DataAddress,u16 number);
+ 134   7      
+ 135   7                    
+ 136   7                      TX1_write2buff(Motor.angle/1000+ '0');
+ 137   7                      TX1_write2buff(Motor.angle%1000/100 + '0');
+ 138   7                      TX1_write2buff(Motor.angle%100/10 + '0');
+ 139   7                      TX1_write2buff(Motor.angle%10 + '0');
+ 140   7                      TX1_write2buff(' ');
+ 141   7      
+ 142   7                  }
+ 143   6                }
+ 144   5              }
+ 145   4      //          for(i=0; i<COM1.RX_Cnt; i++)  TX1_write2buff(RX1_Buffer[i]);  //收到的数据原样返回
+ 146   4              COM1.RX_Cnt = 0;
+ 147   4            }
+ 148   3          }
+ 149   2        }
+ 150   1      }
+ 151          
+ 152          /********************* Timer0中断函数************************/
+ 153          void timer0_int (void) interrupt TIMER0_VECTOR
+ 154          {
+ 155   1      //  int j=0;
+ 156   1        Set_Motor();
+ 157   1      /*  
+ 158   1        if(count!=2500)
+ 159   1          count++;
+ 160   1      //    TX1_write2buff(count);
+ 161   1        else
+ 162   1        {
+ 163   1          count=0;
+ 164   1          
+ 165   1          j = Motor.angle;
+ 166   1          TX1_write2buff(j/1000 + '0');
+ 167   1          TX1_write2buff(j%1000/100 + '0');
+ 168   1          TX1_write2buff(j%100/10 + '0');
+ 169   1          TX1_write2buff(j%10 + '0');
+ 170   1          TX1_write2buff(' ');
+ 171   1        }
+ 172   1      */
+C51 COMPILER V9.60.0.0   MAIN                                                              02/11/2020 23:30:49 PAGE 4   
+
+ 173   1        
+ 174   1      
+ 175   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    605    ----
+   CONSTANT SIZE    =     20    ----
+   XDATA SIZE       =      3      27
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

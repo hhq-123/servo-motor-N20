@@ -1,0 +1,97 @@
+C51 COMPILER V9.60.0.0   MOTOR                                                             02/11/2020 23:30:51 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MOTOR
+OBJECT MODULE PLACED IN ..\OBJ\motor.obj
+COMPILER INVOKED BY: C:\software\IDE\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\MOTOR\motor.c LARGE ROM(COMPACT) OPTIMIZE(8,SPE
+                    -ED) BROWSE INCDIR(..\HARDWARE\ADC;..\HARDWARE\EEPROM;..\HARDWARE\MOTOR;..\SYSTEM\sys;..\SYSTEM\TIMER;..\SYSTEM\USART;..\
+                    -SYSTEM\GPIO;..\SYSTEM\DELAY;..\USER) DEBUG OBJECTEXTEND PRINT(..\LST\motor.lst) TABS(2) OBJECT(..\OBJ\motor.obj)
+
+line level    source
+
+   1          #include "motor.h"
+   2          #include  "adc.h"
+   3          #include "STC15Fxxxx.h"
+   4          
+   5          sbit  Motor1 = P3^2;    //定义电机输出引脚。
+   6          sbit  Motor2 = P3^3;  
+   7          
+   8          MOTOR Motor;
+   9          char pwm=0;
+  10          char pwm0=127;
+  11          
+  12          void Set_Motor()
+  13          {
+  14   1      ///////////////////////////////////////
+  15   1        if(Motor.state==0)
+  16   1        {
+  17   2          Motor1=0,     Motor2=0;
+  18   2        }
+  19   1        else if(Motor.state==1)
+  20   1        {
+  21   2      //    Motor.angle = (Get_ADC10bitResult(0)+Motor.angle*4)/5;  //参数0~7,查询方式做一次ADC, 返回值就是结果, ==
+             - 1024 为错误
+  22   2          Motor.angle = Get_ADC10bitResult(0);
+  23   2          if(Motor.angle-Motor.target> error1)
+  24   2          {
+  25   3            Motor1=1,     Motor2=0;
+  26   3          }
+  27   2          else if(Motor.angle-Motor.target< -error1)
+  28   2          {
+  29   3            Motor1=0,     Motor2=1;
+  30   3          }
+  31   2          else if(Motor.angle-Motor.target> error0)
+  32   2          {
+  33   3            Motor1=~Motor1,     Motor2=0;
+  34   3          } 
+  35   2          else if(Motor.angle-Motor.target< -error0)
+  36   2          {
+  37   3            Motor1=0,     Motor2=~Motor2;
+  38   3          }
+  39   2          else
+  40   2          {
+  41   3            Motor1=0,     Motor2=0;
+  42   3          }
+  43   2        }
+  44   1        
+  45   1        else if(Motor.state==2) 
+  46   1        {
+  47   2          
+  48   2          if(pwm0==0)
+  49   2          {
+  50   3            if(Motor.speed>0)
+  51   3              Motor2=0;
+  52   3            if(Motor.speed<0)
+C51 COMPILER V9.60.0.0   MOTOR                                                             02/11/2020 23:30:51 PAGE 2   
+
+  53   3              Motor2=1;
+  54   3            
+  55   3            pwm0=127;
+  56   3            pwm= Motor.speed&0x7F;
+  57   3            Motor1=1;
+  58   3          }
+  59   2          
+  60   2          if(pwm!=0)
+  61   2            pwm--;
+  62   2          else
+  63   2            Motor1=0;
+  64   2          
+  65   2          pwm0--;
+  66   2          
+  67   2          
+  68   2        }
+  69   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    218    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      8    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

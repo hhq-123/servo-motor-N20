@@ -1,0 +1,9 @@
+"..\OBJ\main.obj",
+"..\OBJ\USART1.obj",
+"..\OBJ\timer.obj",
+"..\OBJ\delay.obj",
+"..\OBJ\ADC.obj",
+"..\OBJ\motor.obj",
+"..\OBJ\EEPROM.obj" 
+TO "..\OBJ\servo controller" 
+PRINT("..\LST\servo controller.m51") RAMSIZE(256) 
